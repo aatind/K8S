@@ -1,21 +1,63 @@
+# Redis server
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nextcloud-server
-  labels:
-    app: nextcloud
+  name: redis-nextcloud
 spec:
   replicas: 1
   selector:
     matchLabels:
-      pod-label: nextcloud-server-pod
+      app: redis-nextcloud
   template:
     metadata:
       labels:
-        pod-label: nextcloud-server-pod
+        app: redis-nextcloud
     spec:
+      nodeSelector:
+        "beta.kubernetes.io/os": linux
       containers:
-      - name: nextcloud
+      - name: redis-nextcloud
+        image: mcr.microsoft.com/oss/bitnami/redis:6.0.8
+        env:
+        - name: MASTER
+          value: "true"
+        ports:
+        - containerPort: 6379
+          name: redis
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-nextcloud
+spec:
+  ports:
+  - port: 6379
+  selector:
+    app: redis-nextcloud
+    
+---
+
+# Nextcloud-server
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextcloud-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nextcloud-server
+  template:
+    metadata:
+      labels:
+        app: nextcloud-server
+    spec:
+      nodeSelector:
+         "beta.kubernetes.io/os": linux
+      containers:
+      - name: nextcloud-server
         image: nextcloud:latest
         volumeMounts:
         - name: server-storage
